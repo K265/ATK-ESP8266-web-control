@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+	<meta charset="utf-8">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title>Web Control</title>
+	<link rel="stylesheet" type="text/css" href="./css/bootstrap.min.css">
+	<link rel="stylesheet" type="text/css" href="./css/style.css">
+	<script src="./js/jquery-3.3.1.min.js"></script>
+	<script src="./js/vue.min.js"></script>
+</head>
+
+<body>
+	<div id="app01">
+		<form action="form.php" @submit.prevent="">
+			<h3 style="text-align: center; color: white; padding: 10px">Welcome</h3>
+			<div id="ConnectGroup" class="" style="margin-bottom: 10px;">
+				<input type="text" id="in1" placeholder="192.168.4.1:8086" v-model="addr" pattern="^\d+\.\d+\.\d+\.\d+:\d+$">
+				<br/>
+				<select class="custom-select selectpad" v-model="selected" id="selectpad" style="margin-bottom: 10px;">
+					<option value="1">Auto</option>
+					<option value="2">Manual</option>
+					<option value="3">Brightness</option>
+				</select>
+				<button type="" class="btn btn-light" id="connectbtn" @click="handleConnection">{{connectmsg}}</button>
+			</div>
+			<div id="manualGroup" style="margin-top: 10px;display: none;">
+				<button style="width:62px" class="btn btn-light" id="manualon" @click="handlemanualon">{{manualon}}</button>
+				<button style="width:62px" class="btn btn-light" id="manualoff" @click="handlemanualoff">{{manualoff}}</button>
+				<button style="width:62px" class="btn btn-light" id="manualexit" @click="handlemanualexit">{{manualExit}}</button>
+			</div>
+			<div id="autoGroup" style="margin-top: 10px;display: none;">
+				<button style="width:199px" class="btn btn-light" id="autoexit" @click="autoexit">{{autoExit}}</button>
+				<p id="" style="color: white; text-align: center;">{{automsg}}</p>
+			</div>
+			<div id="brightGroup" style="margin-top: 10px;display: none;">
+				<select class="custom-select selectpad" v-model="selectedbrightness" id="selectpad">
+					<option value="1">Bright</option>
+					<option value="2">Usual</option>
+					<option value="3">Dim</option>
+					<option value="4">Exit</option>
+				</select>
+				<button style="width:199px;margin-top: 10px;" class="btn btn-light" id="brightconfirm" @click="handleBright">{{brightconfirm}}</button>
+			</div>
+		</form>
+		<ul class="bg-bubbles">
+			<li></li>
+			<li></li>
+			<li></li>
+			<li></li>
+			<li></li>
+			<li></li>
+			<li></li>
+			<li></li>
+			<li></li>
+			<li></li>
+		</ul>
+	</div>
+
+	<script>
+		vue = new Vue({
+			el: '#app01',
+			data: {
+				// addr: '127.0.0.1:8086',
+				addr: '192.168.4.1:8086',
+				// 最开始的选择
+				selected: '2',
+				connectmsg: 'Connect',
+				connected: false,
+
+				// 手动选择
+				manualon: 'on',
+				manualoff: 'off',
+				manualExit: 'Exit',
+
+				// 自动模式
+				autoExit: 'Exit',
+				automsg: '',
+				isAuto: false,
+
+				// 亮度选择
+				selectedbrightness: '1',
+				brightconfirm: 'Confirm',
+			},
+			methods: {
+				handleConnection: function () {
+					$("#connectbtn").attr("disabled", true);
+					// var isconnected = this.connected;
+					// if (isconnected) {
+					// 	$("#ConnectGroup").slideDown(1500);
+					// 	$("#autoGroup").slideUp(1500);
+					// 	$("#manualGroup").slideUp(1500);
+					// 	$("#brightGroup").slideUp(1500);
+					// 	$("#connectbtn").attr("disabled", false);
+					// 	this.connectmsg = 'Connect';
+					// 	this.connected = false;
+					// }
+					// else {//未连接时
+					this.connectmsg = 'Connecting...';
+					var addrarray = this.addr.split(':');
+					var host = addrarray[0];
+					var port = addrarray[1];
+					$.post("select.php",
+						{
+							"host": host,
+							"port": port,
+							"selection": this.selected.toString(),
+						},
+						function (data, status) {
+							$("#ConnectGroup").slideUp(1000);
+							if (vue.selected == '1') {
+								$("#autoGroup").slideDown(1000);
+								vue.isAuto = true;
+								var timer = setInterval(function () {
+									if (!vue.isAuto) {
+										clearInterval(timer);
+									}
+									else {
+										var addrarray = vue.addr.split(':');
+										var host = addrarray[0];
+										var port = addrarray[1];
+										$.post("autoupdate.php",
+											{
+												"host": host,
+												"port": port,
+											},
+											function (data, status) {
+												if (/Got People/.test(data))
+													vue.automsg = 'Got People';
+												else
+													vue.automsg = 'No People';
+											});
+									}
+								}, 1500);
+							}
+
+							if (vue.selected == '2')
+								$("#manualGroup").slideDown(1000);
+							if (vue.selected == '3')
+								$("#brightGroup").slideDown(1000);
+							// vue.connected = true;
+							// vue.connectmsg = 'disconnect';
+							vue.connectmsg = 'connect';
+						});
+					// }
+				},
+				handlemanualon: function () {
+					$("#manualon").attr("disabled", true);
+					var addrarray = this.addr.split(':');
+					var host = addrarray[0];
+					var port = addrarray[1];
+					vue.manualon = 'on...';
+					$.post("manualselect.php",
+						{
+							"host": host,
+							"port": port,
+							"selection": '1',
+						},
+						function (data, status) {
+							vue.manualon = 'on';
+							$("#manualon").attr("disabled", false);
+						});
+				},
+				handlemanualoff: function () {
+					$("#manualoff").attr("disabled", true);
+					var addrarray = this.addr.split(':');
+					var host = addrarray[0];
+					var port = addrarray[1];
+					vue.manualoff = 'off...';
+					$.post("manualselect.php",
+						{
+							"host": host,
+							"port": port,
+							"selection": '2',
+						},
+						function (data, status) {
+							vue.manualoff = 'off';
+							$("#manualoff").attr("disabled", false);
+						});
+				},
+				handlemanualexit: function () {
+					$("#manualexit").attr("disabled", true);
+					var addrarray = this.addr.split(':');
+					var host = addrarray[0];
+					var port = addrarray[1];
+					vue.manualExit = 'Exit...';
+					$.post("manualselect.php",
+						{
+							"host": host,
+							"port": port,
+							"selection": '3',
+						},
+						function (data, status) {
+							vue.manualExit = 'Exit';
+							$("#manualGroup").slideUp(1000);
+							$("#manualexit").attr("disabled", false);
+							$("#connectbtn").attr("disabled", false);
+							$("#ConnectGroup").slideDown(1000);
+						});
+				},
+				autoexit: function () {
+					$("#autoexit").attr("disabled", true);
+					var addrarray = this.addr.split(':');
+					var host = addrarray[0];
+					var port = addrarray[1];
+					vue.autoExit = 'Exit...';
+					this.isAuto = false;
+					$.post("autoexit.php",
+						{
+							"host": host,
+							"port": port,
+							"selection": '3',
+						},
+						function (data, status) {
+							vue.autoExit = 'Exit';
+							$("#autoGroup").slideUp(1000);
+							$("#autoexit").attr("disabled", false);
+							$("#connectbtn").attr("disabled", false);
+							$("#ConnectGroup").slideDown(1000);
+						});
+				},
+				handleBright: function () {
+					$("#brightconfirm").attr("disabled", true);
+					var addrarray = this.addr.split(':');
+					var host = addrarray[0];
+					var port = addrarray[1];
+					this.brightconfirm = 'Confirm...';
+					$.post("manualselect.php",
+						{
+							"host": host,
+							"port": port,
+							"selection": this.selectedbrightness.toString(),
+						},
+						function (data, status) {
+							vue.brightconfirm = 'Confirm';
+							$("#brightconfirm").attr("disabled", false);
+							if (vue.selectedbrightness == '4') {
+								$("#connectbtn").attr("disabled", false);
+								$("#brightGroup").slideUp(1000);
+								$("#connectbtn").attr("disabled", false);
+								$("#ConnectGroup").slideDown(1000);
+							}
+						});
+				}
+			}
+		})
+	</script>
+	<script src="./js/bootstrap.min.js "></script>
+</body>
+
+</html>
